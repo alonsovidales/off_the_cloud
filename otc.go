@@ -14,25 +14,28 @@ import (
 )
 
 func main() {
-	// Setting up the logging to a file inside the logs directory
-	f, err := os.OpenFile(fmt.Sprintf("logs/%d.log", time.Now().UnixNano()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-	log.SetOutput(f)
-
+	stdoutLog := flag.Bool("stdout", true, "Show logs by the STDOUT")
 	// The server can be launched in any port but the default is 8282
 	port := flag.Int("p", 8282, "port where the REST API will be listening")
-
 	maxCpus := flag.Int("c", runtime.NumCPU(), "max number of CPUs to be used")
-	runtime.GOMAXPROCS(*maxCpus)
 
 	flag.Parse()
 
+	runtime.GOMAXPROCS(*maxCpus)
+
+	if !*stdoutLog {
+		// Setting up the logging to a file inside the logs directory
+		f, err := os.OpenFile(fmt.Sprintf("logs/%d.log", time.Now().UnixNano()), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalf("error opening file: %v", err)
+		}
+		defer f.Close()
+		log.SetOutput(f)
+	}
+
 	// Launch the server and add the controllers to it
 	httpApi := api.GetAPI(*port)
-	httpApi.AddController("/data/", controllers.GetDataStorageController())
+	httpApi.AddController("/data/", controllers.GetMediaController())
 
 	go func() {
 		err := httpApi.Start()
